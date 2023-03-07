@@ -1,5 +1,7 @@
 const axios = require('axios');
+const { PORT } = require('../config');
+const { timeContinuously } = require('./utils');
 
-const main = async () => {};
-
-main();
+timeContinuously(async () => {
+    await axios.get(`http://localhost:${PORT}/hot`);
+});

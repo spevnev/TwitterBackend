@@ -73,15 +73,9 @@ const initDB = async () => {
         );
         await client.query(
             `INSERT INTO tags(tag) 
-            SELECT 'hot tag #' || i 
-            FROM generate_series(1, $1) AS i;`,
-            [HOT_TAGS]
-        );
-        await client.query(
-            `INSERT INTO tags(tag) 
             SELECT 'tag #' || i 
             FROM generate_series(1, $1) AS i;`,
-            [TAGS - HOT_TAGS]
+            [TAGS]
         );
         const INSERT_INTO_POST_TAGS = `
             INSERT INTO post_tags(post_id, tag_id) 

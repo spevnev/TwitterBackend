@@ -49,7 +49,7 @@ const createPost = async (request, response) => {
         if (!feed || !text || !tags) return response.sendStatus(400);
 
         const db = await getClient();
-        const result = await db.query(`SELECT id FROM feeds WHERE title = $1`, [feed]); // TODO: create feed if doesn't exist?
+        const result = await db.query(`SELECT id FROM feeds WHERE title = $1;`, [feed]);
         if (result.rows.length != 1) return response.sendStatus(400);
         await db.query(
             `INSERT INTO tags(tag) 
@@ -65,7 +65,7 @@ const createPost = async (request, response) => {
                 SELECT id FROM tags WHERE tag = ANY($3::TEXT[])
             ) INSERT INTO post_tags(post_id, tag_id) 
             SELECT created_post.id, tags.id 
-            FROM created_post, tags`,
+            FROM created_post, tags;`,
             [result.rows[0].id, text, tags]
         );
         response.sendStatus(200);
