@@ -1,10 +1,10 @@
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const { FEEDS, FEEDS_POSTS, USERS, USERS_SUBSCRIPTIONS, HOT_TAGS, TAGS, TAGS_PER_POST } = require('../config');
 
 let client;
 const getClient = async () => {
     if (!client) {
-        client = new Client({ database: 'tweeter' });
+        client = new Pool({ database: 'tweeter' });
         await client.connect();
     }
 
@@ -12,61 +12,61 @@ const getClient = async () => {
 };
 
 const initDB = async () => {
-    // return;
+    return;
     try {
         const client = await getClient();
 
         await client.query(`
             DROP TABLE IF EXISTS users, feeds, subscriptions, posts, post_tags, tags;
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE users (
                 id SERIAL NOT NULL UNIQUE,
                 username TEXT NOT NULL UNIQUE
             );
-            CREATE TABLE IF NOT EXISTS feeds (
+            CREATE TABLE feeds (
                 id SERIAL NOT NULL UNIQUE,
                 title TEXT NOT NULL UNIQUE
             );
-            CREATE TABLE IF NOT EXISTS subscriptions (
+            CREATE TABLE subscriptions (
                 user_id INT NOT NULL,
                 feed_id INT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS posts (
+            CREATE TABLE posts (
                 id SERIAL NOT NULL UNIQUE,
                 feed_id INT NOT NULL,
                 text TEXT NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT(NOW())
             );
-            CREATE TABLE IF NOT EXISTS post_tags (
+            CREATE TABLE post_tags (
                 post_id INT NOT NULL,
                 tag_id INT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS tags (
+            CREATE TABLE tags (
                 id SERIAL NOT NULL UNIQUE,
                 tag TEXT NOT NULL UNIQUE
             );
         `);
 
         await client.query(
-            `INSERT INTO users(username) 
-            SELECT 'user #' || i 
+            `INSERT INTO users(username)
+            SELECT 'user #' || i
             FROM generate_series(1, $1) AS i;`,
             [USERS]
         );
         await client.query(
-            `INSERT INTO feeds(title) 
-            SELECT 'feed #' || i 
+            `INSERT INTO feeds(title)
+            SELECT 'feed #' || i
             FROM generate_series(1, $1) AS i;`,
             [FEEDS]
         );
         await client.query(
-            `INSERT INTO subscriptions(user_id, feed_id) 
+            `INSERT INTO subscriptions(user_id, feed_id)
             SELECT i, j
             FROM generate_series(1, $1) AS i, generate_series(1, $2) AS j
             WHERE RANDOM() < $3;`,
             [USERS, FEEDS, USERS_SUBSCRIPTIONS / FEEDS]
         );
         await client.query(
-            `INSERT INTO posts(feed_id, text, created_at) 
+            `INSERT INTO posts(feed_id, text, created_at)
             SELECT (i % $1) + 1, 'post #' || i, NOW() + ((i - $2 / 2) * INTERVAL '1 millisecond')
             FROM generate_series(1, $2) AS i;`,
             [FEEDS, FEEDS * FEEDS_POSTS]

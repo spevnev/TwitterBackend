@@ -2,55 +2,30 @@ const { getClient } = require('./db');
 
 const getTimeline = async (request, response) => {
     try {
-        const { username } = request.query;
-        if (!username) return response.sendStatus(400);
+        const { userId } = request.query;
+        if (!userId) return response.sendStatus(400);
 
         const db = await getClient();
         const result = await db.query(
-            `SELECT text, title FROM users u 
-            INNER JOIN subscriptions s ON u.id = s.user_id 
+            `SELECT text, title FROM subscriptions s 
             INNER JOIN feeds f ON s.feed_id = f.id 
             INNER JOIN posts p ON f.id = p.feed_id
-            WHERE username = $1 ORDER BY created_at DESC LIMIT 20;`,
-            [username]
+            WHERE s.user_id = $1 ORDER BY created_at DESC LIMIT 20;`,
+            [userId]
         );
         response.json(result.rows);
-    } catch (e) {
+    } catch (error) {
         response.sendStatus(500);
-        console.error(e);
-    }
-};
-
-const subscribeToFeed = async (request, response) => {
-    try {
-        const { username, feed } = request.query;
-        if (!username || !feed) return response.sendStatus(400);
-
-        const db = await getClient();
-        await db.query(
-            `WITH user AS (
-                SELECT id FROM users WHERE username = $1::TEXT
-            ), feed AS (
-                SELECT id FROM feeds WHERE title = $2::TEXT
-            ) INSERT INTO subscriptions(user_id, feed_id) VALUES (user, feed)
-            WHERE (SELECT count(1) FROM subscriptions WHERE user_id = user.id AND feed_id = feed.id) = 0;`,
-            [username, feed]
-        );
-        response.sendStatus(200);
-    } catch (e) {
-        response.sendStatus(500);
-        console.error(e);
+        console.error(error);
     }
 };
 
 const createPost = async (request, response) => {
     try {
-        const { feed, text, tags } = request.body;
-        if (!feed || !text || !tags) return response.sendStatus(400);
+        const { feedId, text, tags } = request.body;
+        if (!feedId || !text || !tags) return response.sendStatus(400);
 
         const db = await getClient();
-        const result = await db.query(`SELECT id FROM feeds WHERE title = $1;`, [feed]);
-        if (result.rows.length != 1) return response.sendStatus(400);
         await db.query(
             `INSERT INTO tags(tag) 
             SELECT UNNEST($1::TEXT[]) 
@@ -66,12 +41,12 @@ const createPost = async (request, response) => {
             ) INSERT INTO post_tags(post_id, tag_id) 
             SELECT created_post.id, tags.id 
             FROM created_post, tags;`,
-            [result.rows[0].id, text, tags]
+            [feedId, text, tags]
         );
         response.sendStatus(200);
-    } catch (e) {
+    } catch (error) {
         response.sendStatus(500);
-        console.error(e);
+        console.error(error);
     }
 };
 
@@ -89,9 +64,9 @@ const searchByTag = async (request, response) => {
             [tag]
         );
         response.json(result.rows);
-    } catch (e) {
+    } catch (error) {
         response.sendStatus(500);
-        console.error(e);
+        console.error(error);
     }
 };
 
@@ -104,10 +79,10 @@ const getHotTags = async (request, response) => {
             GROUP BY t.id, t.tag ORDER BY posts DESC LIMIT 10;
         `);
         response.json(result.rows.map(({ tag }) => tag));
-    } catch (e) {
+    } catch (error) {
         response.sendStatus(500);
-        console.error(e);
+        console.error(error);
     }
 };
 
-module.exports = { getTimeline, subscribeToFeed, createPost, searchByTag, getHotTags };
+module.exports = { getTimeline, createPost, searchByTag, getHotTags };

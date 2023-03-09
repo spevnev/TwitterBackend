@@ -4,17 +4,18 @@ const timeContinuously = async callback => {
         let i = 0;
         while (1) {
             const t = Date.now();
-            await callback();
+            const sleepFor = await callback();
             const cur = Date.now() - t;
             sum += cur;
             i++;
             console.log(`Current: ${cur}ms, average: ${sum / i}ms`);
+            if (sleepFor) await sleep(sleepFor);
         }
-    } catch (e) {
-        console.error(e);
+    } catch (error) {
+        console.error(error);
     }
 };
 
 const sleep = ms => new Promise(res => setTimeout(() => res(null), ms));
 
-module.exports = { timeContinuously, sleep };
+module.exports = { timeContinuously };

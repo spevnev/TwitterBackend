@@ -1,9 +1,7 @@
 {
     "name": "twitter",
     "version": "1.0.0",
-    "scripts": {
-        "start": "nodemon server"
-    },
+    "scripts": {},
     "keywords": [],
     "author": "",
     "license": "ISC",
