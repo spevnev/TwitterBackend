@@ -72,14 +72,14 @@ const initDB = async () => {
             [FEEDS, FEEDS * FEEDS_POSTS]
         );
         await client.query(
-            `INSERT INTO tags(tag) 
-            SELECT 'tag #' || i 
+            `INSERT INTO tags(tag)
+            SELECT 'tag #' || i
             FROM generate_series(1, $1) AS i;`,
             [TAGS]
         );
         const INSERT_INTO_POST_TAGS = `
-            INSERT INTO post_tags(post_id, tag_id) 
-            SELECT i, j 
+            INSERT INTO post_tags(post_id, tag_id)
+            SELECT i, j
             FROM generate_series(1, $1) AS i, generate_series($2::INT, $3::INT) AS j
             WHERE RANDOM() < $4;
         `;

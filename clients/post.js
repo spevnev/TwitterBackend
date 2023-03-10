@@ -14,7 +14,7 @@ timeContinuously(async () => {
     for (let i = 0; i < tagsNumber; i++) tags.push(`tag #${Math.floor(Math.random() * TAGS) + 1}`);
     tags.push(`new tag #${Math.floor(Math.random() * 10000)}`);
     await axios.post(`http://localhost:${PORT}/post`, {
-        feed: feed++,
+        feedId: feed++,
         text: 'new post',
         tags
     });
