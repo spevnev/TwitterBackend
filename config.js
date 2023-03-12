@@ -1,10 +1,10 @@
 module.exports = {
     PORT: 3000,
-    FEEDS: 7500,
-    FEEDS_POSTS: 12000,
-    USERS: 80000,
+    FEEDS: 10000,
+    FEEDS_POSTS: 12500,
+    USERS: 125000,
     USERS_SUBSCRIPTIONS: 1500,
     HOT_TAGS: 10,
-    TAGS: 250,
-    TAGS_PER_POST: 8
+    TAGS: 10000,
+    TAGS_PER_POST: 10
 };

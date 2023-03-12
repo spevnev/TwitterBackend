@@ -12,3 +12,8 @@ app.get('/tag', searchByTag);
 app.get('/hot', getHotTags);
 
 initDB().then(() => app.listen(PORT, () => console.log(`Listening on port ${PORT}.`)));
+
+//                 feed    hot     tag
+// DUMB: 		   117s    127s    146s
+// INDEXED: 	   220ms   9.4ms  17.5ms
+// DENORMALIZED:   16ms    1ms     120ms

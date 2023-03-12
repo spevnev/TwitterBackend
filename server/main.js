@@ -7,10 +7,10 @@ const getTimeline = async (request, response) => {
 
         const db = await getClient();
         const result = await db.query(
-            `SELECT text, title FROM subscriptions s
-            INNER JOIN feeds f ON s.feed_id = f.id
+            `SELECT text, title FROM (SELECT *, UNNEST(feeds) AS feed_id FROM users) u
+            INNER JOIN feeds f ON u.feed_id = f.id
             INNER JOIN posts p ON f.id = p.feed_id
-            WHERE s.user_id = $1 ORDER BY created_at DESC LIMIT 20;`,
+            WHERE u.id = $1 ORDER BY created_at DESC LIMIT 20;`,
             [userId]
         );
         response.json(result.rows);
@@ -26,24 +26,7 @@ const createPost = async (request, response) => {
         if (!feedId || !text || !tags) return response.sendStatus(400);
 
         const db = await getClient();
-        await db.query(
-            `INSERT INTO tags(tag)
-            SELECT UNNEST($1::TEXT[])
-            ON CONFLICT DO NOTHING;`,
-            [tags]
-        );
-        await db.query(
-            `WITH created_post AS (
-                INSERT INTO posts(feed_id, text)
-                VALUES ($1, $2) RETURNING id
-            ), tags AS (
-                SELECT id FROM tags WHERE tag = ANY($3::TEXT[])
-            )
-            INSERT INTO post_tags(post_id, tag_id)
-            SELECT created_post.id, tags.id
-            FROM created_post, tags;`,
-            [feedId, text, tags]
-        );
+        await db.query(`INSERT INTO posts(feed_id, text, tags) VALUES ($1, $2, $3);`, [feedId, text, tags]);
         response.sendStatus(200);
     } catch (error) {
         response.sendStatus(500);
@@ -58,11 +41,13 @@ const searchByTag = async (request, response) => {
 
         const db = await getClient();
         const result = await db.query(
-            `SELECT text FROM posts p
-            INNER JOIN post_tags pt ON p.id = pt.post_id
-            WHERE pt.tag_id = (SELECT id FROM tags WHERE tag = $1::TEXT)
+            `SELECT title, text FROM (
+                SELECT * FROM posts
+                WHERE tags @> $1
+            ) p
+            INNER JOIN feeds f ON p.feed_id = f.id
             ORDER BY created_at DESC LIMIT 100;`,
-            [tag]
+            [[tag]]
         );
         response.json(result.rows);
     } catch (error) {
@@ -75,15 +60,13 @@ const getHotTags = async (request, response) => {
     try {
         const db = await getClient();
         const result = await db.query(`
-            WITH latest_posts AS (
-                SELECT id FROM posts
+            WITH latest_tags AS (
+                SELECT id, UNNEST(tags) AS tag FROM posts
                 ORDER BY created_at DESC
                 LIMIT 1000
             )
-            SELECT tag, count(1) AS posts FROM latest_posts lp
-            INNER JOIN post_tags pt ON lp.id = pt.post_id
-            INNER JOIN tags t ON pt.tag_id = t.id
-            GROUP BY t.id, tag
+            SELECT tag, count(1) AS posts FROM latest_tags
+            GROUP BY tag
             ORDER BY posts DESC
             LIMIT 10;
         `);
