@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const { FEEDS, FEEDS_POSTS, USERS, USERS_SUBSCRIPTIONS, HOT_TAGS, TAGS, TAGS_PER_POST } = require('../config');
 
 let client;
-const getClient = async () => {
+const getDBClient = async () => {
     if (!client) {
         client = new Pool({ database: 'tweeter' });
         await client.connect();
@@ -13,7 +13,7 @@ const getClient = async () => {
 
 const initDB = async () => {
     return;
-    const client = await getClient();
+    const client = await getDBClient();
     try {
         await client.query(`BEGIN;`);
 
@@ -54,7 +54,7 @@ const initDB = async () => {
         for (let feed = 1; feed <= FEEDS; feed++) {
             for (let post = 1; post <= FEEDS_POSTS; post++) {
                 const tags = new Set();
-                for (let i = 0; i < 5; i++) tags.add(`"t${Math.floor(Math.random() * HOT_TAGS) + 1}"`);
+                for (let i = 0; i < HOT_TAGS / 2; i++) tags.add(`"t${Math.floor(Math.random() * HOT_TAGS) + 1}"`);
                 while (tags.size < TAGS_PER_POST) tags.add(`"t${Math.floor(Math.random() * TAGS) + 1}"`);
                 values.push(`(${feed},'txt','{${[...tags].join(',')}}')`);
             }
@@ -73,6 +73,7 @@ const initDB = async () => {
 
         await client.query(`
             CREATE UNIQUE INDEX feeds_idx ON feeds (id);
+            CREATE INDEX users_feeds_idx ON users USING GIN (feeds);
             CREATE UNIQUE INDEX users_idx ON users (id);
             CREATE UNIQUE INDEX posts_idx ON posts (id);
             CREATE INDEX posts_created_at_idx ON posts (created_at DESC);
@@ -88,4 +89,4 @@ const initDB = async () => {
     }
 };
 
-module.exports = { getClient, initDB };
+module.exports = { getDBClient, initDB };
